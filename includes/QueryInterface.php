@@ -6,10 +6,10 @@ use SMW\DataValueFactory;
 use SMW\Subobject;
 
 /**
- * Class SemanticQueryInterface
+ * Class QueryInterface
  * @package SemanticQuery
  */
-class SemanticQueryInterface {
+class QueryInterface {
 
 	/** @var  \SMWStore */
 	protected $store;
@@ -132,7 +132,7 @@ class SemanticQueryInterface {
 	 * @return $this
 	 */
 	public function category( $category ) {
-		$this->categories[] = SemanticUtils::stringToDbkey($category);
+		$this->categories[] = Utils::stringToDbkey($category);
 		return $this;
 	}
 
@@ -145,7 +145,7 @@ class SemanticQueryInterface {
 		if( $flatResult ) {
 			$this->config['flat_result_array'] = true;
 		}
-		$this->page = SemanticUtils::stringToDbkey($page);
+		$this->page = Utils::stringToDbkey($page);
 		return $this;
 	}
 
@@ -237,9 +237,9 @@ class SemanticQueryInterface {
 			//Fetch all subject properties if config set to true
 			if( $this->config['fetch_all_properties'] ) {
 				if( $title->getFragment() ) {
-					$properties = SemanticUtils::getSubobjectProperties( $title );
+					$properties = Utils::getSubobjectProperties( $title );
 				}else{
-					$properties = SemanticUtils::getPageProperties( $title->getText(), $title->getNamespace() );
+					$properties = Utils::getPageProperties( $title->getText(), $title->getNamespace() );
 				}
 				if( $this->config['flat_prop_vals'] ) {
 					foreach ( $properties as &$property ) {
@@ -276,9 +276,9 @@ class SemanticQueryInterface {
 					/** @var \SMWDataItem[] $propValues */
 					$propValues = $rowItem->getContent();
 					$propName = $rowItem->getPrintRequest()->getLabel();
-					$propName = SemanticUtils::dbKeyToString($propName);
+					$propName = Utils::dbKeyToString($propName);
 					foreach($propValues as $propValue) {
-						$value = SemanticUtils::getPropertyValue( $propValue, $stringifyPropValues );
+						$value = Utils::getPropertyValue( $propValue, $stringifyPropValues );
 						//If option enabled, flat every property except system arrays
 						if( $this->config['flat_prop_vals'] && $propName != 'Categories' && $propName != 'SubcategoryOf' ) {
 							$array[$arrayKey]['properties'][$propName] = $value;
@@ -359,7 +359,7 @@ class SemanticQueryInterface {
 		//Create printouts array if was not set
 		if( (count($this->printouts) == 0) && ($this->page !== null) ) {
 			//Everything
-			$propList = SemanticUtils::getPageProperties( $this->page );
+			$propList = Utils::getPageProperties( $this->page );
 			$propList = array_keys($propList);
 			$this->printouts = $propList;
 		}

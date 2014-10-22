@@ -1,21 +1,20 @@
 <?php
 
 /**
- * Class SemanticXMLSpecial
+ * Class SemanticQueryInterfaceSpecial
  *
- * @package SemanticXML
+ * @package SemanticQueryInterface
  */
-
 class SemanticQueryInterfaceSpecial extends SpecialPage {
 
 	function __construct() {
-		parent::__construct( 'SemanticQueryInterface', 'usesemanticxml' );
+		parent::__construct( 'SemanticQueryInterface', 'usesemanticqueryinterface' );
 	}
 
 	public function execute( $params ) {
 
 		$out = $this->getOutput();
-		$out->setHTMLTitle( wfMessage('semanticxml')->text() );
+		$out->setHTMLTitle( wfMessage('semanticqueryinterface')->text() );
 
 		//test functions here
 
@@ -93,23 +92,23 @@ class SemanticQueryInterfaceSpecial extends SpecialPage {
 
 		/* ========================================================= CLASS TEST STARTS HERE! ==================== */
 
-		/* Test with Semantic Query class */
+		/* Test with Query Interface class */
 
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->condition( array('MyProp1') );
 		$sq->execute();
 		$result = $sq->getResult();
 
-		/* Test with Semantic Query class with value */
+		/* Test with Query Interface class with value */
 
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->condition( array('MyProp1','MyProp1Value') );
 		$sq->execute();
 		$result = $sq->getResult();
 
-		/* Test with Semantic Query class with conjunction */
+		/* Test with Query Interface class with conjunction */
 
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->condition( array('MyProp1') )
 			->condition( array('MyProp2') )
 			->condition( array('MyProp3') )
@@ -118,31 +117,31 @@ class SemanticQueryInterfaceSpecial extends SpecialPage {
 		$result = $sq->getResult();
 
 		/* Test with target page */
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->from('QueryMe3');
 		$sq->execute();
 		$result = $sq->getResult();
 
 		/* Test with some property value */
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->condition('PropA')->condition('PropB');
 		$sq->execute();
 		$result = $sq->toArray();
 
 		/* Query: {{#ask: [[PropA::+]] [[PropB::ValueB3]] |?PropA |?PropB }} */
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->condition('PropA')->condition( array('PropB','ValueB3') );
 		$sq->execute();
 		$result = $sq->toArray();
 
 		/* Query: {{#ask: [[QueryMe4]] |?PropA |?PropB }} */
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->from('QueryMe4')->printout('PropA')->printout('PropB');
 		$sq->execute();
 		$result = $sq->toArray();
 
 		/* Query: {{#ask: [[QueryMe4]] |?PropA |?PropB }} with flattern values */
-		$sq = new \SQI\SemanticQueryInterface(
+		$sq = new \SQI\QueryInterface(
 			array(
 				'flat_prop_vals' => true
 			) );
@@ -151,22 +150,22 @@ class SemanticQueryInterfaceSpecial extends SpecialPage {
 		$result = $sq->toArray();
 
 		/* Query: {{#ask: [[Кюрими5]] }} */
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->from('Кюрими5');
 		$sq->execute();
 		$result = $sq->toArray();
 
 		/* Query: {{#ask: [[Category::Querable]] }} */
-		$sq = new \SQI\SemanticQueryInterface( array('flat_prop_vals' => true) );
+		$sq = new \SQI\QueryInterface( array('flat_prop_vals' => true) );
 		$sq->category('Querable')->condition('NotExist');
 		$sq->execute();
 		$result = $sq->toArray();
 
 		/* Testing subobjects like they set in PageSchemas now */
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$result = $sq->condition('Список организаций относится к','TestSub')->printout('*')->execute()->toArray();
 
-		$sq = new \SQI\SemanticQueryInterface();
+		$sq = new \SQI\QueryInterface();
 		$sq->condition('SBList related to','TestSub')->printout('*')->execute();
 		$result = $sq->toArray();
 

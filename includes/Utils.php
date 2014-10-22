@@ -19,11 +19,11 @@ use SMW\Subobject;
  * The section after the long description contains the tags; which provide
  * structured meta-data concerning the given element.
  *
- * Class SemanticUtils
+ * Class Utils
  * @package SemanticQuery
  *
  */
-class SemanticUtils {
+class Utils {
 
 	/**
 	 * Short desc

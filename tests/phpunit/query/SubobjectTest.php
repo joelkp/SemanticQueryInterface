@@ -5,11 +5,11 @@
 
 namespace SQI\Tests;
 
-use SQI\SemanticQueryInterface;
+use SQI\QueryInterface;
 
 class SubobjectTest extends \MediaWikiTestCase {
 
-	/** @var SemanticQueryInterface */
+	/** @var QueryInterface */
 	private $sq;
 
 	protected function setUp() {
@@ -20,7 +20,7 @@ class SubobjectTest extends \MediaWikiTestCase {
 		}
 
 		//Create query
-		$this->sq = new SemanticQueryInterface();
+		$this->sq = new QueryInterface();
 	}
 
 	protected function tearDown() {

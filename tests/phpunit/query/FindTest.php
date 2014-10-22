@@ -5,17 +5,17 @@
 
 namespace SQI\Tests;
 
-use SQI\SemanticQueryInterface;
+use SQI\QueryInterface;
 
 class FindTest extends \MediaWikiTestCase {
 
-	/** @var SemanticQueryInterface */
+	/** @var QueryInterface */
 	private $sq;
 
 	protected function setUp() {
 		parent::setUp();
 		//Create query
-		$this->sq = new SemanticQueryInterface();
+		$this->sq = new QueryInterface();
 	}
 
 	protected function tearDown() {
