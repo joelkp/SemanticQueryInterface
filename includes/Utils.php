@@ -20,7 +20,7 @@ use SMW\Subobject;
  * structured meta-data concerning the given element.
  *
  * Class Utils
- * @package SemanticQuery
+ * @package SemanticQueryInterface
  *
  */
 class Utils {

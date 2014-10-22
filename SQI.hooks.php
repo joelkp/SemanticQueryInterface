@@ -3,11 +3,10 @@
  * Hooks class declaration for mediawiki extension SemanticQuery
  *
  * @file SQI.hooks.php
- * @ingroup SemanticQuery
- * @package SemanticQuery
+ * @ingroup SemanticQueryInterface
+ * @package SemanticQueryInterface
  *
  */
-
 class SemanticQueryInterfaceHooks {
 
 	public static function onUnitTestsList( &$files ) {

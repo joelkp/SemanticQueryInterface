@@ -7,7 +7,7 @@ use SMW\Subobject;
 
 /**
  * Class QueryInterface
- * @package SemanticQuery
+ * @package SemanticQueryInterface
  */
 class QueryInterface {
 
