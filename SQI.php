@@ -57,7 +57,9 @@ $wgAutoloadClasses['SemanticQueryInterfaceHooks'] = __DIR__ . '/SQI.hooks.php';
 
 $wgAutoloadClasses['SQI\\QueryInterface'] = __DIR__ . '/includes/QueryInterface.php';
 $wgAutoloadClasses['SQI\\RelGraphInterface'] = __DIR__ . '/includes/RelGraphInterface.php';
-$wgAutoloadClasses['SQI\\Utils'] = __DIR__ . '/includes/Utils.php';
+
+/* Include global functions */
+require_once __DIR__ . '/includes/GlobalFunctions.php';
 
 /* Rights */
 $wgAvailableRights[] = 'usesemanticqueryinterface';

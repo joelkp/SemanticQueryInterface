@@ -156,13 +156,13 @@ class QueryInterface {
 			return $this;
 		}
 
-		$id = Utils::getPropertyID( $idOrLabel );
+		$id = sqifGetPropertyID( $idOrLabel );
 		$this->printouts[] = $id;
 		if ( $label === null ) {
 			if ( isset( $this->printoutLabels[$id] ) ) {
 				$label = $this->printoutLabels[$id];
 			} else {
-				$label = Utils::getPropertyLabel( $id );
+				$label = sqifGetPropertyLabel( $id );
 				$this->printoutLabels[$id] = $label;
 			}
 		} else {
@@ -302,9 +302,9 @@ class QueryInterface {
 			//Fetch all subject properties if config set to true
 			if( $this->config['fetch_all_properties'] ) {
 				if( $title->getFragment() ) {
-					$properties = Utils::getSubobjectProperties( $title );
+					$properties = sqifGetSubobjectProperties( $title );
 				}else{
-					$properties = Utils::getPageProperties( $title->getText(), $title->getNamespace() );
+					$properties = sqifGetPageProperties( $title->getText(), $title->getNamespace() );
 				}
 				if( $this->config['flat_property_values'] ) {
 					foreach ( $properties as &$property ) {
@@ -343,7 +343,7 @@ class QueryInterface {
 					$propName = $rowItem->getPrintRequest()->getLabel();
 					$propName = smwfNormalTitleText($propName);
 					foreach($propValues as $propValue) {
-						$value = Utils::getPropertyValue( $propValue, $stringifyPropValues );
+						$value = sqifGetDataItemValue( $propValue, $stringifyPropValues );
 						//If option enabled, flat every property except system arrays
 						if( $this->config['flat_property_values'] && $propName != 'Categories' && $propName != 'SubcategoryOf' ) {
 							$array[$arrayKey]['properties'][$propName] = $value;
@@ -424,18 +424,18 @@ class QueryInterface {
 		//Create printouts array if was not set
 		if( (count($this->printouts) == 0) && ($this->page !== null) ) {
 			//Everything
-			$propList = Utils::getPageProperties( $this->page );
+			$propList = sqifGetPageProperties( $this->page );
 			$propList = array_keys($propList);
 			$this->printouts = $propList;
 		}
 
 		//Add printouts to query
 		foreach ( $this->printouts as $printout ) {
-			$printout = Utils::getPropertyID( $printout ); // TODO: remove need
+			$printout = sqifGetPropertyID( $printout ); // TODO: remove need
 			if ( isset ( $this->printoutLabels[$printout] ) ) {
 				$printLabel = $this->printoutLabels[$printout];
 			} else {
-				$printLabel = Utils::getPropertyLabel( $printout );
+				$printLabel = sqifGetPropertyLabel( $printout );
 			}
 			$printProp = \SMWPropertyValue::makeProperty( $printout );
 			$queryDescription->addPrintRequest( new \SMWPrintRequest( \SMWPrintRequest::PRINT_PROP, $printLabel, $printProp ) );
