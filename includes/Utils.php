@@ -6,47 +6,56 @@ use SMW\DataValueFactory;
 use SMW\Subobject;
 
 /**
- * awdawdawd ''awdawdaw'' awdawdawd '''dawdawdawad'''awdawdawd
- * awdawd
- * awdawdawdawdawdawd
- * awdawdawdawdaw
- * dawdawdawd
- * _markdown_
- * *dfawdawd
- * *dawdawdawd
- * **dawdawdawd
+ * Utility functions for SemanticQueryInterface.
  *
- * The section after the long description contains the tags; which provide
- * structured meta-data concerning the given element.
- *
- * Class Utils
  * @package SemanticQueryInterface
- *
  */
 class Utils {
 
 	/**
-	 * Short desc
+	 * Return property ID corresponding to the given label. The
+	 * label is assumed to be well-formed; no correction is attempted.
 	 *
-	 * Long _desc_ of '''block''' *dawd*
+	 * If the property is not a pre-defined one, then the label is
+	 * normalized to DBKey form and serves as the ID.
 	 *
-	 * `$x=2; $x-set();`
+	 * @param string $label The property label
+	 * @return string       The property ID
+	 */
+	public static function getPropertyID( $label ) {
+		$id = \SMWDIProperty::findPropertyID( $label );
+		if ( $id !== false ) {
+			return $id;
+		} else {
+			return smwfNormalTitleDBKey( $label );
+		}
+	}
+
+	/**
+	 * Return property label corresponding to the given ID. The
+	 * ID is assumed to be well-formed; no correction is attempted.
 	 *
-	 *     dawd_Dwadawd_dawdawd
+	 * If no pre-defined property label is found, the ID is assumed to
+	 * be a page name, and is returned normalized - unless it begins
+	 * with an underscore, in which case it is assumed to be a
+	 * nameless property, and is returned unchanged.
 	 *
-	 * #dadawdawd
-	 *
-	 * ##dawdawdawd
-	 *
-	 * >dawdawdad
-	 *
-	 * [dawawd](http://ya.ru)
-	 *
-	 * [awdawdawd][tag]
-	 *
-	 * [tag]: http://ya.ru
-	 *
-	 * ![alt](http://ya.ru)
+	 * @param string $id The property ID
+	 * @return string    The property label
+	 */
+	public static function getPropertyLabel( $id ) {
+		$label = \SMWDIProperty::findPropertyLabel( $id );
+		if ( $label !== '' ) {
+			return $label;
+		} elseif ( ( $id !== '' ) && ( $id[0] == '_' ) ) {
+			return $id;
+		} else {
+			return smwfNormalTitleText( $id );
+		}
+	}
+
+	/**
+	 * Return the value of a \SMWDataItem.
 	 *
 	 * @param \SMWDataItem $di
 	 * @param bool $toString
@@ -127,7 +136,7 @@ class Utils {
 		//Fetch all props values from smwfStore
 		foreach( $properties as $property ) {
 
-			$property = self::stringToDbkey($property);
+			$property = smwfNormalTitleDBKey($property);
 
 			if(empty($property) || $property == '') {
 				continue;
@@ -152,33 +161,32 @@ class Utils {
 						$valueDv = \SMWDataValueFactory::newDataItemValue( $valueDi, $propertyDi );
 					}
 
-					$propValues[self::dbKeyToString($property)][] = $valueDv->getWikiValue();
+					$propValues[smwfNormalTitleText($property)][] = $valueDv->getWikiValue();
 				}
 
 			}else{
-				$propValues[self::dbKeyToString($property)] = array();
+				$propValues[smwfNormalTitleText($property)] = array();
 			}
 
 		}
 
 		return $propValues;
-
 	}
 
 	/**
-	 * Get property values of requested wiki-page.
-	 * By default * - reutrns all properties. Array of properties to return can be passed.
+	 * Get property values from the requested wiki-page. By default
+	 * '*' returns all properties. An array of properties to return
+	 * can be passed.
 	 *
 	 * @param string $title
 	 * @param int $namespace
-	 * @param array $properties
+	 * @param string|string[] $properties
 	 * @return array
 	 */
 	public static function getPageProperties( $title, $namespace = NS_MAIN , $properties = array('*') ) {
-
 		$propValues = array();
 
-		$title = self::stringToDbkey($title);
+		$title = smwfNormalTitleDBKey($title);
 
 		//Single property to single item array
 		if( !is_array($properties) ) {
@@ -198,7 +206,7 @@ class Utils {
 		//Fetch all props values from smwfStore
 		foreach( $properties as $property ) {
 
-			$property = self::stringToDbkey($property);
+			$property = smwfNormalTitleDBKey($property);
 
 			if(empty($property) || $property == '') {
 				continue;
@@ -224,11 +232,11 @@ class Utils {
 						$valueDv = \SMWDataValueFactory::newDataItemValue( $valueDi, $propertyDi );
 					}
 
-					$propValues[self::dbKeyToString($property)][] = $valueDv->getWikiValue();
+					$propValues[smwfNormalTitleText($property)][] = $valueDv->getWikiValue();
 				}
 
 			}else{
-				$propValues[self::dbKeyToString($property)] = array();
+				$propValues[smwfNormalTitleText($property)] = array();
 			}
 
 		}
@@ -237,29 +245,40 @@ class Utils {
 	}
 
 	/**
-	 *
-	 * Wrap for getPageProperties in case of single property.
-	 * Returns array of request property values
+	 * Convenience wrapper for getPageProperties in case of getting a
+	 * single property. Returns array of requested property values.
 	 *
 	 * @param string $title
 	 * @param int $namespace
 	 * @param string $property
-	 * @return Array
+	 * @return array
 	 */
 	public static function getPageProperty( $title, $namespace, $property ) {
-
-		$value = SMWBridge::getPageProperties( $title, $namespace, $property );
+		$value = getPageProperties( $title, $namespace, $property );
 		return array_shift($value);
-
 	}
 
+	/**
+	 * Set property values for the requested wiki-page. The
+	 * properties are to be passed as an array of
+	 * 'property' => 'value' entries. Returns whether or not all
+	 * property-value pairs were valid and the properties set.
+	 *
+	 * @param string $title
+	 * @param int $namespace
+	 * @param array $properties
+	 * @return bool
+	 */
 	public static function setPageProperties( $title, $namespace = NS_MAIN, $properties = array() ) {
+		$allValid = true;
 
-		if ( !count($properties) ) return;
+		if ( !count( $properties ) ) {
+			return $allValid;
+		}
 
-		$semandticData = smwfGetStore()->getSemanticData( new SMWDIWikiPage( $title, $namespace, '' ) );
+		$semanticData = smwfGetStore()->getSemanticData( new SMWDIWikiPage( $title, $namespace, '' ) );
 
-		foreach( $properties as $propertyName => $propertyValue ) {
+		foreach ( $properties as $propertyName => $propertyValue ) {
 
 			$propertyDv = SMWPropertyValue::makeUserProperty( $propertyName );
 			$propertyDi = $propertyDv->getDataItem();
@@ -268,27 +287,39 @@ class Utils {
 				$propertyDi,
 				$propertyValue,
 				$propertyName,
-				$semandticData->getSubject()
+				$semanticData->getSubject()
 			);
-			$semandticData->addPropertyObjectValue( $propertyDi, $result->getDataItem() );
-
+			if ( $result->isValid() ) {
+				$semanticData->addPropertyObjectValue( $propertyDi,
+					$result->getDataItem() );
+			} else {
+				$allValid = false;
+			}
 		}
 
-		smwfGetStore()->updateData( $semandticData );
-		$a = Title::newFromText($title)->getDBkey();
-		smwfGetStore()->refreshData( Title::newFromText($title)->getArticleID(), 1 );
+		smwfGetStore()->updateData( $semanticData );
+		$a = Title::newFromText( $title )->getDBkey();
+		smwfGetStore()->refreshData( Title::newFromText( $title )->getArticleID(), 1 );
 
-		//echo '<pre>';print_r($result);echo '</pre>';
+		//echo '<pre>';print_r( $result );echo '</pre>';
 
-		return $result->isValid();
-
+		return $allValid;
 	}
 
+	/**
+	 * Convenience wrapper for setPageProperties in case of setting a
+	 * single property. Returns whether or not the property-value
+	 * pair was valid and the property set.
+	 *
+	 * @param string $title
+	 * @param int $namespace
+	 * @param string $property
+	 * @param mixed $value
+	 * @return bool
+	 */
 	public static function setPageProperty( $title, $namespace, $property, $value ) {
-
-		$result = SMWBridge::setPageProperties( $title, $namespace, array($property => $value) );
-		return true;
-
+		$result = setPageProperties( $title, $namespace, array($property => $value) );
+		return $result;
 	}
 
 	/**
@@ -299,48 +330,14 @@ class Utils {
 	 * @return Title
 	 */
 	protected static function prepareTitle( $title, $namespace = NS_MAIN ) {
-
 		if ( $title instanceof Title ) {
-			//good
+			// Nothing to do
 		}else{
-			//Make title from text
+			// Make title from text
 			$title = Title::newFromText( $title, $namespace );
 		}
 
 		return $title;
-
-	}
-
-	/**
-	 * Converts string to dbkey format
-	 * copied from Title
-	 * @param $string
-	 * @return string
-	 */
-	public static function stringToDbkey( $string ) {
-		# Strip Unicode bidi override characters.
-		# Sometimes they slip into cut-n-pasted page titles, where the
-		# override chars get included in list displays.
-		$dbkey = preg_replace( '/\xE2\x80[\x8E\x8F\xAA-\xAE]/S', '', $string );
-
-		# Clean up whitespace
-		# Note: use of the /u option on preg_replace here will cause
-		# input with invalid UTF-8 sequences to be nullified out in PHP 5.2.x,
-		# conveniently disabling them.
-		$dbkey = preg_replace( '/[ _\xA0\x{1680}\x{180E}\x{2000}-\x{200A}\x{2028}\x{2029}\x{202F}\x{205F}\x{3000}]+/u', '_', $dbkey );
-		$dbkey = trim( $dbkey, '_' );
-		return $dbkey;
-	}
-
-	/**
-	 * Converts dbkey to string format
-	 * copied from Title
-	 * @param $dbkey
-	 * @internal param $string
-	 * @return string
-	 */
-	public static function dbKeyToString( $dbkey ) {
-		return str_replace('_',' ',$dbkey);
 	}
 
 }

@@ -13,14 +13,16 @@ class QueryInterface {
 
 	/** @var  \SMWStore */
 	protected $store;
-	/** @var  Array */
+	/** @var  array */
 	protected $config;
 	/** @var  string */
 	protected $page;
-	/** @var  Array[] */
+	/** @var  array[] */
 	protected $conditions;
 	/** @var  string[] */
 	protected $printouts;
+	/** @var  string[] */
+	protected $printoutLabels;
 	/** @var  string[] */
 	protected $categories;
 	/** @var  int */
@@ -32,63 +34,99 @@ class QueryInterface {
 	protected $result;
 
 	/**
-	 * Creates new class instance.
-	 * Config array can be passed to override default options, array keys available:
-	 * flat_prop_vals (false) - Fetch only last (first) property value instead of one element array;
-	 * fetch_default_properties (true) - Fetch default semantic properties (like category) for every subject page;
-	 * fetch_all_properties (false) - Fetch all subject properties and their values by default;
-	 * @param null $config
+	 * Constructor. A configuration array can be passed to override
+	 * default options; the array keys and default values are:
+	 * - 'flat_property_values' => false
+	 *   Fetch only last (first) property value instead of one
+	 *   element array.
+	 * - 'printouts' => $sqigQIDefaultPrintouts
+	 *   The globally configured default printouts for every subject
+	 *   page.
+	 * - 'printout_labels' => $sqigQIDefaultPrintoutLabels
+	 *   The globally configured default printout labels (used for
+	 *   printouts in favor of property names retrieved from
+	 *   Semantic MediaWiki).
+	 * - 'fetch_all_properties' => false
+	 *   Fetch all (non-special) subject properties and their values
+	 *   by default.
+	 *
+	 * @param array|null $config
 	 */
 	function __construct( $config = null ) {
 		$this->reset( $config );
 	}
 
+	/**
+	 * Reset the state. This includes configuration, which is either
+	 * set to the default, or using the passed configuration option
+	 * array as in the constructor.
+	 *
+	 * @param array|null $config
+	 */
 	public function reset( $config = null ) {
-		$this->page = null;
-		$this->conditions = array();
-		$this->printouts = array();
-		$this->categories = array();
-		$this->result = null;
-		$this->limit = 1000;
-		$this->offset = 0;
-		$this->result = null;
-		/* Configuration Default */
+		/*
+		 * Semantic store.
+		 */
+		$this->store = smwfGetStore();
+
+		/*
+		 * Default configuration.
+		 *
+		 * See constructor documentation regarding the options.
+		 */
 		$this->config = array(
-			//Fetch only last (first) property value instead of one element array
-			'flat_prop_vals' => false,
-			//Fetch default semantic properties (like category) for every subject page
-			'fetch_default_properties' => true,
-			//Fetch all subject properties and their values by default
+			'flat_property_values' => false,
+			'printouts' => $GLOBALS['sqigQIDefaultPrintouts'],
+			'printout_labels' => $GLOBALS['sqigQIDefaultPrintoutLabels'],
 			'fetch_all_properties' => false,
-			//Flat results array: Only one (first) result will be returned instead of results array
 			'flat_result_array' => false
 		);
 		if( $config !== null ) {
 			$this->config = array_merge( $this->config, $config );
 		}
-		/* Semantic store */
-		$this->store = smwfGetStore();
+
+		/*
+		 * The rest.
+		 */
+		$this->page = null;
+		$this->conditions = array();
+		$this->printouts = $this->config['printouts'];
+		$this->printoutLabels = $this->config['printout_labels'];
+		$this->categories = array();
+		$this->result = null;
+		$this->limit = ( $GLOBALS['sqigQDefaultLimit'] !== null ) ?
+			$GLOBALS['sqigQDefaultLimit'] :
+			$GLOBALS['smwgQMaxInlineLimit'];
+		$this->offset = 0;
+		$this->result = null;
 	}
 
 	/**
-	 * Set query results offset
-	 * @param $offset
+	 * Set the query results offset.
+	 *
+	 * @param int $offset
 	 */
-	public function offset( $offset ) {
+	public function setOffset( $offset ) {
 		$this->offset = $offset;
 	}
 
 	/**
-	 * Set query results limit
-	 * @param $limit
+	 * Set the query results limit.
+	 *
+	 * The limit set by the Semantic MediaWiki $smwgQMaxLimit setting
+	 * also holds, and exceeding it has no effect.
+	 *
+	 * The default is determined by the $sqigQDefaultLimit setting.
+	 *
+	 * @param int $limit
 	 */
-	public function limit( $limit ) {
+	public function setLimit( $limit ) {
 		$this->limit = $limit;
 	}
 
 	/**
 	 * Apply some condition to query.
-	 * @param Array $condition should be array like (propertyName) | (propertyName,propertyValue)
+	 * @param array $condition should be array like (propertyName) | (propertyName,propertyValue)
 	 * @param null $conditionValue
 	 * @return $this
 	 */
@@ -106,16 +144,39 @@ class QueryInterface {
 	}
 
 	/**
-	 * Adds property to be fetched and printed out, use * to print out all properties
-	 * @param $printout
+	 * Adds one or more properties to be fetched and printed out; use
+	 * '*' to print out all properties.
+	 *
+	 * @param string|string[] $idOrLabel
 	 * @return $this
 	 */
-	public function printout( $printout ) {
+	public function printout( $idOrLabel, $label = null ) {
+		if( $idOrLabel == '*' ) {
+			$this->config['fetch_all_properties'] = true;
+			return $this;
+		}
+
+		$id = Utils::getPropertyID( $idOrLabel );
+		$this->printouts[] = $id;
+		if ( $label === null ) {
+			if ( isset( $this->printoutLabels[$id] ) ) {
+				$label = $this->printoutLabels[$id];
+			} else {
+				$label = Utils::getPropertyLabel( $id );
+				$this->printoutLabels[$id] = $label;
+			}
+		} else {
+			$this->printoutLabels[$id] = $label;
+		}
+
+		return $this;
+
+/*
 		if( $printout == '*' ) {
 			$this->config['fetch_all_properties'] = true;
 			return $this;
 		}
-		if( is_array($printout) ) {
+		if( is_array( $printout ) ) {
 			foreach ( $printout as $pt ) {
 				$this->printouts[] = $pt;
 			}
@@ -123,6 +184,7 @@ class QueryInterface {
 		}else{
 			$this->printouts[] = $printout;
 		}
+*/
 		return $this;
 	}
 
@@ -132,12 +194,13 @@ class QueryInterface {
 	 * @return $this
 	 */
 	public function category( $category ) {
-		$this->categories[] = Utils::stringToDbkey($category);
+		$this->categories[] = smwfNormalTitleDBKey($category);
 		return $this;
 	}
 
 	/**
 	 * Sets query limitation to specified page (title as string)
+	 *
 	 * @param $page
 	 * @return $this
 	 */
@@ -145,63 +208,60 @@ class QueryInterface {
 		if( $flatResult ) {
 			$this->config['flat_result_array'] = true;
 		}
-		$this->page = Utils::stringToDbkey($page);
+		$this->page = smwfNormalTitleDBKey($page);
 		return $this;
 	}
 
 	/**
-	 * Executes the query. Not necessary to call directly, all methods execute query on demand.
-	 * @return $this
-	 */
-	public function execute() {
-		$queryDescription = $this->buildQuery();
-		$query = new \SMWQuery( $queryDescription );
-		$query->setOffset( $this->offset );
-		$query->setLimit( $this->limit );
-		$this->result = $this->store->getQueryResult( $query );
-		return $this;
-	}
-
-	/**
-	 * Return raw query result as SMWQueryResult object
+	 * Return raw query result as SMWQueryResult object.
+	 *
+	 * Unless already done, this executes the query.
+	 *
 	 * @return \SMWQueryResult
 	 */
 	public function getResult() {
 		if( $this->result === null ) {
-			$this->execute();
+			$this->executeQuery();
 		}
 		return $this->result;
 	}
 
 	/**
-	 * Counts query results
+	 * Return query result count.
+	 *
+	 * Unless already done, this executes the query.
+	 *
 	 * @return int
 	 */
-	public function count() {
+	public function getResultCount() {
 		if( $this->result === null ) {
-			$this->execute();
+			$this->executeQuery();
 		}
 		return $this->result->getCount();
 	}
 
 	/**
-	 * Return query affected subjects as Titles
+	 * Return query result subjects (pages and/or subobjects) as
+	 * Title instances.
+	 *
+	 * Unless already done, this executes the query.
+	 *
 	 * @return \Title[]
 	 */
 	public function getResultSubjects() {
-		if( $this->result === null ) {
-			$this->execute();
+		if ( $this->result === null ) {
+			$this->executeQuery();
 		}
 		$subjects = array();
 		$result = $this->result->getResults();
 		/** @var \SMWDIWikiPage $subject */
-		foreach($result as $subject) {
+		foreach ($result as $subject) {
 			$title = $subject->getTitle();
-			if( $subject->getSubobjectName() != '' ) {
+			if ( $subject->getSubobjectName() !== '' ) {
 				$subjects[] = $title;
 				continue;
 			}
-			if(!in_array( $title, $subjects )) {
+			if ( !in_array( $title, $subjects ) ) {
 				$subjects[] = $title;
 			}
 		}
@@ -210,15 +270,20 @@ class QueryInterface {
 	}
 
 	/**
-	 * Main method to get query results. Converts raw semantic result to human readable array.
-	 * //TODO: This method need slight refactoring about array keys organisation
+	 * Main method to get query results. Converts raw semantic result
+	 * to human-readable array.
+	 *
+	 * Unless already done, this executes the query.
+	 *
+	 * @todo This method needs slight refactoring about array keys organisation.
+	 * @todo Querying for 'fetch_all_properties' inside this method is broken design
+	 *
 	 * @param bool $stringifyPropValues cast all properties values types to string
 	 * @return array
 	 */
-	public function toArray( $stringifyPropValues = false ) {
-
+	public function getResultArray( $stringifyPropValues = false ) {
 		if( $this->result === null ) {
-			$this->execute();
+			$this->executeQuery();
 		}
 
 		$array = array();
@@ -241,7 +306,7 @@ class QueryInterface {
 				}else{
 					$properties = Utils::getPageProperties( $title->getText(), $title->getNamespace() );
 				}
-				if( $this->config['flat_prop_vals'] ) {
+				if( $this->config['flat_property_values'] ) {
 					foreach ( $properties as &$property ) {
 						if( is_array($property) && count($property) ) {
 							$property = $property[0];
@@ -276,11 +341,11 @@ class QueryInterface {
 					/** @var \SMWDataItem[] $propValues */
 					$propValues = $rowItem->getContent();
 					$propName = $rowItem->getPrintRequest()->getLabel();
-					$propName = Utils::dbKeyToString($propName);
+					$propName = smwfNormalTitleText($propName);
 					foreach($propValues as $propValue) {
 						$value = Utils::getPropertyValue( $propValue, $stringifyPropValues );
 						//If option enabled, flat every property except system arrays
-						if( $this->config['flat_prop_vals'] && $propName != 'Categories' && $propName != 'SubcategoryOf' ) {
+						if( $this->config['flat_property_values'] && $propName != 'Categories' && $propName != 'SubcategoryOf' ) {
 							$array[$arrayKey]['properties'][$propName] = $value;
 						}else{
 							$array[$arrayKey]['properties'][$propName][] = $value;
@@ -294,14 +359,14 @@ class QueryInterface {
 			return array_shift($array);
 		}
 		return $array;
-
 	}
 
 	/**
 	 * Builds query from options set initially
+	 *
 	 * @return \SMWConjunction
 	 */
-	private function buildQuery() {
+	protected function buildQuery() {
 		$queryDescription = new \SMWThingDescription();
 		$conditionDescriptions = array();
 
@@ -365,31 +430,33 @@ class QueryInterface {
 		}
 
 		//Add printouts to query
-		foreach( $this->printouts as $printout ) {
-			$printProp = \SMWPropertyValue::makeUserProperty($printout);
-			$queryDescription->addPrintRequest( new \SMWPrintRequest( \SMWPrintRequest::PRINT_PROP, $printout, $printProp ) );
-		}
-
-		//If config variable set, fetch SMW system properties also
-		if( $this->config['fetch_default_properties'] ) {
-			//Fetch every subject categories
-			$printProp = \SMWPropertyValue::makeProperty('_INST');
-			$queryDescription->addPrintRequest( new \SMWPrintRequest( \SMWPrintRequest::PRINT_PROP, 'Categories', $printProp ) );
-			//Fetch every subject subcategory of
-			$printProp = \SMWPropertyValue::makeProperty('_SUBC');
-			$queryDescription->addPrintRequest( new \SMWPrintRequest( \SMWPrintRequest::PRINT_PROP, 'SubcategoryOf', $printProp ) );
-			//Fetch every subject modification date
-			$printProp = \SMWPropertyValue::makeProperty('_MDAT');
-			$queryDescription->addPrintRequest( new \SMWPrintRequest( \SMWPrintRequest::PRINT_PROP, 'ModificationDate', $printProp ) );
-			//Fetch every subject creation date
-			$printProp = \SMWPropertyValue::makeProperty('_CDAT');
-			$queryDescription->addPrintRequest( new \SMWPrintRequest( \SMWPrintRequest::PRINT_PROP, 'CreationDate', $printProp ) );
-			//Fetch every subject last editor user
-			$printProp = \SMWPropertyValue::makeProperty('_LEDT');
-			$queryDescription->addPrintRequest( new \SMWPrintRequest( \SMWPrintRequest::PRINT_PROP, 'LastEditor', $printProp ) );
+		foreach ( $this->printouts as $printout ) {
+			$printout = Utils::getPropertyID( $printout ); // TODO: remove need
+			if ( isset ( $this->printoutLabels[$printout] ) ) {
+				$printLabel = $this->printoutLabels[$printout];
+			} else {
+				$printLabel = Utils::getPropertyLabel( $printout );
+			}
+			$printProp = \SMWPropertyValue::makeProperty( $printout );
+			$queryDescription->addPrintRequest( new \SMWPrintRequest( \SMWPrintRequest::PRINT_PROP, $printLabel, $printProp ) );
 		}
 
 		return $queryDescription;
+	}
+
+	/**
+	 * Executes the query. Unless already done, this is called by all
+	 * methods that return results.
+	 *
+	 * @return $this
+	 */
+	protected function executeQuery() {
+		$queryDescription = $this->buildQuery();
+		$query = new \SMWQuery( $queryDescription );
+		$query->setOffset( $this->offset );
+		$query->setLimit( $this->limit );
+		$this->result = $this->store->getQueryResult( $query );
+		return $this;
 	}
 
 }
